@@ -1,0 +1,47 @@
+---
+- name: Configure EC2 and deploy Docker container
+  hosts: docker
+  become: yes
+
+  tasks:
+
+    - name: Update system
+      yum:
+        name: "*"
+        state: latest
+
+    - name: Install Docker
+      yum:
+        name: docker
+        state: present
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ec2-user to docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
+
+    - name: Install Git
+      yum:
+        name: git
+        state: present
+
+    - name: Clone application repo
+      git:
+        repo: https://github.com/USERNAME/REPO.git
+        dest: /home/ec2-user/app
+        version: main
+
+    - name: Build Docker image
+      command: docker build -t myapp .
+      args:
+        chdir: /home/ec2-user/app
+
+    - name: Run Docker container
+      command: docker run -d -p 80:80 --name mycontainer myapp
